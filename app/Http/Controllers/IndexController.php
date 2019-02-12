@@ -12,6 +12,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Response;
 use App\City;
+use App\Weather;
 
 class IndexController extends Controller
 {
@@ -22,7 +23,7 @@ class IndexController extends Controller
      */
     public function indexAction()
     {
-        return view('welcome');
+        return view('index');
     }
 
     /**
@@ -39,16 +40,32 @@ class IndexController extends Controller
     /**
      * @param float $longitude
      * @param float $latitude
+     * @param string $currentDay
+     * @param string $direction
      * @return mixed
      */
-    function getCityWeatherAction($longitude, $latitude)
+    function getCityWeatherAction($longitude, $latitude, $currentDay, $direction)
     {
-        $longitude = float($longitude);
-        $latitude  = float($latitude);
+        $longitude   = (float)$longitude;
+        $latitude    = (float)$latitude;
+        $$currentDay = (int)$currentDay;
 
-        $items = [
-            'today' => '15C'
-        ];
+        if (!in_array($direction, ['0', 'next', 'prev'])) {
+            throw new Exception('Wrong direction');
+        }
+
+        if (!$longitude || !$latitude) {
+            throw new Exception('Wrong coordinates');
+        }
+
+        // @todo validate longitude
+
+        $items = (new Weather)->getCityWeather(
+            $longitude,
+            $latitude,
+            $currentDay,
+            $direction
+        );
 
         return Response::json(['items' => $items]);
     }

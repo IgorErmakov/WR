@@ -13,4 +13,4 @@
 
 Route::get('/', 'IndexController@indexAction');
 Route::get('/find-city/{name}', 'IndexController@findCityByNameAction');
-Route::get('/get-city-weather/{longitude}/{latitude}', 'IndexController@getCityWeatherAction');
+Route::get('/get-city-weather/{longitude}/{latitude}/{currentDay}/{direction}', 'IndexController@getCityWeatherAction');

@@ -6,11 +6,11 @@
 
         <div class="content">
 
-            <div class="title m-b-md">
+            <div class="title m-b-md" id="app-title">
                 Weather lite
             </div>
 
-            <div class="panel panel-default">
+            <div class="panel panel-default" id="city-block">
                 <div class="panel-heading">Please enter city name</div>
                 <div class="panel-body">
                     <autocomplete></autocomplete>
@@ -19,17 +19,24 @@
 
             <div id="weather-data">
 
-                <singleday v-for="day in dayItems" v-bind:day="day"></singleday>
+                <div id="days-list">
+                    <singleday v-for="day in dayItems" v-bind:day="day"></singleday>
+                </div>
 
-                <a href="#" click="loadPrevDays($event)">Prev 3 days</a>
-                <a href="#" click="loadNextDays($event)">Next 3 days</a>
+                <div id="pagination">
+                    <a href="#" click="loadDays($event, 'prev')">Prev 3 days</a>
+                    |
+                    <a href="#" click="loadDays($event, 'next')">Next 3 days</a>
+                </div>
 
             </div>
 
-
-
-
         </div>
+
+        <footer>
+            <a href="https://darksky.net/poweredby/" target="_blank">Powered by Dark Sky</a>
+        </footer>
+
     </div>
 
     <div id="autocomplete-tpl" style="display: none">
@@ -56,15 +63,16 @@
 
     <div id="day-weather-tpl" style="display: none">
 
-        <div>
+        <div class="day-weather card" style="width: 18rem;">
+            <div class="card-body">
 
-            <div class="day-weather card" style="width: 18rem;">
-                <img v-bind:href="day.weatherImage" class="card-img-top" alt="...">
-                <div class="card-body">
-                    <h5 class="card-title">@{{ day.dayLabel }}</h5>
-                    <p class="card-text">@{{ day.dayTemp }}</p>
-                    <p class="card-text">@{{ day.nightTemp }}</p>
-                </div>
+                <h5 class="card-title">@{{ day.dayLabel }}</h5>
+
+                <img v-bind:src="day.weatherImage" class="card-img-top" alt="...">
+
+                <p class="card-text">Day: @{{ day.dayTemp }}</p>
+
+                <p class="card-text">Night: @{{ day.nightTemp }}</p>
             </div>
         </div>
     </div>
@@ -104,18 +112,10 @@
 
                 loadWeather(result)
                 {
-                    console.log(result.longitude)
-                    console.log(result.latitude)
-
                     this.searchQuery = result.name + ',' + result.country;
                     this.dataResults = []
 
-                    axios.get('/get-city-weather/' + result.longitude + '/' + result.latitude).then(response => {
-
-                        response.data.days.forEach(itm => {
-                            this.dataResults.push(itm)
-                        })
-                    });
+                    app.loadWeather(result.longitude, result.latitude);
                 }
             },
         })
@@ -157,7 +157,21 @@
             el: '#app',
             data() {
                 return {
+                    lastUsedLongitude: 0,
+                    lastUsedLatitud: 0,
                     dayItems: [
+                        {
+                            dayLabel: 'label',
+                            dayTemp: '31c',
+                            nightTemp: '17C',
+                            weatherImage: '',
+                        },
+                        {
+                            dayLabel: 'label',
+                            dayTemp: '31c',
+                            nightTemp: '17C',
+                            weatherImage: '',
+                        },
                         {
                             dayLabel: 'label',
                             dayTemp: '31c',
@@ -168,19 +182,44 @@
                 }
             },
 
-            mounted() {
-
-            },
-
             methods:  {
 
-                loadPrevDays(e)
+                loadWeather(longitude, latitude, day = '0', direction = '0')
                 {
+                    this.dataItems = [];
 
+                    this.lastUsedLongitude = longitude;
+                    this.lastUsedLatitude  = latitude;
+
+                    let url = '/get-city-weather'
+                            + '/' + longitude
+                            + '/' + latitude
+                            + '/' + day
+                            + '/' + direction;
+
+                    axios.get(url).then(response => {
+
+                        response.data.days.forEach(itm => {
+                            this.dataItems.push(itm)
+                        })
+                    });
                 },
-                loadNextDays(e)
-                {
 
+                loadDays(e, direction)
+                {
+                    if (this.dataItems.length) {
+
+                        let day = 'prev' == direction ?
+                            this.dataItems[0].day : // prior to "first day"
+                            this.dataItems[2].day; // after "last day"
+
+                        this.loadWeather(
+                            this.lastUsedLongitude,
+                            this.lastUsedLatitude,
+                            day,
+                            direction
+                        );
+                    }
                 },
             }
         });
