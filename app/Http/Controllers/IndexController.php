@@ -9,10 +9,10 @@
 namespace App\Http\Controllers;
 
 
-use Illuminate\Http\Request;
 use Response;
 use App\City;
 use App\Weather;
+
 
 class IndexController extends Controller
 {
@@ -48,7 +48,7 @@ class IndexController extends Controller
     {
         $longitude   = (float)$longitude;
         $latitude    = (float)$latitude;
-        $$currentDay = (int)$currentDay;
+        $currentDay  = $currentDay;
 
         if (!in_array($direction, ['0', 'next', 'prev'])) {
             throw new Exception('Wrong direction');
@@ -58,12 +58,22 @@ class IndexController extends Controller
             throw new Exception('Wrong coordinates');
         }
 
+        if (empty($currentDay)) {
+            $currentDate = null;
+        } else {
+            $currentDate = \DateTime::createFromFormat('Y-m-d', $currentDay);
+
+            if (!$currentDate) {
+                throw new Exception('Wrong date format');
+            }
+        }
+
         // @todo validate longitude
 
         $items = (new Weather)->getCityWeather(
             $longitude,
             $latitude,
-            $currentDay,
+            $currentDate,
             $direction
         );
 
