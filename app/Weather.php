@@ -169,7 +169,7 @@ class Weather extends Model
         $name = "{$longitude}__{$latitude}__{$currentDay}__{$direction}";
         $name=str_replace([',', '.'], '_', $name);
 
-        $file = "/webserver/wr/storage/framework/cache/$name";
+        $file = storage_path('framework') . "/cache/$name";
 
         if (file_exists($file)) {
             return json_decode(file_get_contents($file));
@@ -181,7 +181,7 @@ class Weather extends Model
         $name = "{$longitude}__{$latitude}__{$currentDay}__{$direction}";
         $name=str_replace([',', '.'], '_', $name);
 
-        $file = "/webserver/wr/storage/framework/cache/$name";
+        $file = storage_path('framework') . "/cache/$name";
 
         file_put_contents(
             $file,
