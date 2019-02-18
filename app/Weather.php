@@ -13,32 +13,25 @@ class Weather extends Model
     /**
      * @param float $longitude
      * @param float $latitude
-     * @param \DateTime $currentDay
+     * @param \DateTime $givenDay
      * @param string $direction
      * @return array
      */
-    public function getCityWeather(float $longitude, float $latitude, \DateTime $currentDay = null, string $direction = '') : array
+    public function getCityWeather(float $longitude,
+                                   float $latitude,
+                                   \DateTime $givenDay = null,
+                                   string $direction   = '') : array
     {
-        $currentDayStr = $currentDay ? $currentDay->format('Y-m-d') : '';
-
-        $result = $this->_getCached($longitude, $latitude, $currentDayStr, $direction);
-//
-        $result=false;
-
-        if (!empty($result)) {
-            return $result;
-        }
-
-
         $result = [];
+
         $client = new Client([
-            'baseUrl' => self::API_URI,
+            'baseUrl'        => self::API_URI,
             'decode_content' => 'gzip'
         ]);
 
-        $apiKey = env('DARKSKY_API_KEY');
-
-        $days = $currentDay ? $this->_getDays($currentDay, $direction) : [''];
+        $days = $givenDay ?
+            $this->_getDays($givenDay, $direction) :
+            [ '' ]; // today
 
         if (empty($days)) {
             return [];
@@ -50,34 +43,27 @@ class Weather extends Model
 
             $uri = sprintf(
                 'https://api.darksky.net/forecast/%s/%f,%f%s/?units=si&exclude=currently,minutely,hourly',
-                $apiKey,
-                $longitude,
+                env('DARKSKY_API_KEY'),
                 $latitude,
-                $day ? ',' . $day . 'T23:59:59+02:00' : '' // add "," before the day if the day is not empty
+                $longitude,
+                $day ? ",{$day}T00:00:00" : '' // add "," before the day if the day is not empty
             );
 
-            $promises[] = $client->getAsync($uri);
+            // special case for 'today'
+            $promises[$day] = $client->getAsync($uri);
         }
 
         // Wait on all of the requests to complete. Throws a ConnectException
         // if any of the requests fail
         $reqResults = Promise\unwrap($promises);
 
-        foreach ($reqResults as $res) {
+        foreach ($reqResults as $day => $res) {
 
             $result = array_merge(
-                $this->_getDataFromResponse($res),
+                $this->_getDataFromResponse($day, $res),
                 $result
             );
-
         }
-
-        if ('next' == $direction) {
-            $result = array_reverse($result);
-        }
-
-        $this->_putCache($result, $longitude, $latitude, $currentDayStr, $direction);
-
 
         return $result;
     }
@@ -96,8 +82,8 @@ class Weather extends Model
 
         $interval = new \DateInterval('P1D');
 
-        // get 8 next/prev days
-        for ($i = 0; $i < 8; $i++) {
+        // get 7 next/prev days
+        for ($i = 0; $i < 7; $i++) {
 
             if ('next' == $direction) {
 
@@ -116,14 +102,19 @@ class Weather extends Model
             }
         }
 
+        if ('next' == $direction) {
+            $result = array_reverse($result);
+        }
+
         return $result;
     }
 
     /**
+     * @param string  $givenDay
      * @param \GuzzleHttp\Psr7\Response $response
      * @return array
      */
-    private function _getDataFromResponse(\GuzzleHttp\Psr7\Response $response) : array
+    private function _getDataFromResponse(string $givenDay, \GuzzleHttp\Psr7\Response $response) : array
     {
         // parse JSON
         $resultJson = (string)$response->getBody();
@@ -146,13 +137,22 @@ class Weather extends Model
 
         $todayDate = date('Y-m-d');
 
-        foreach ($jsonData->daily->data as $dayData) {
+        foreach ($jsonData->daily->data as $idx => $dayData) {
+
+            $day = $givenDay;
+
+            $day = $day ? : date('Y-m-d', $dayData->time);
+
+            if (!$givenDay && !$idx) {
+                // skip 'yesterday' for the default view (current day and next 7 days)
+                continue;
+            }
 
             $itm = new \stdClass;
 
-            $itm->dateIso      = date('Y-m-d', $dayData->time);
-            $itm->isToday      = $todayDate == $itm->dateIso;
-            $itm->dayLabel     = date('l, d F Y', $dayData->time);
+            $itm->dateIso      = $day;
+            $itm->isToday      = $todayDate == $day;
+            $itm->dayLabel     = date('l, d F Y', strtotime($day));
             $itm->summary      = $dayData->summary;
             $itm->weatherImage = $dayData->icon;
             $itm->dayTemp      = round($dayData->temperatureHigh) . ' ℃';
@@ -162,30 +162,5 @@ class Weather extends Model
         }
 
         return $result;
-    }
-
-    function _getCached($longitude, $latitude, $currentDay, $direction)
-    {
-        $name = "{$longitude}__{$latitude}__{$currentDay}__{$direction}";
-        $name=str_replace([',', '.'], '_', $name);
-
-        $file = storage_path('framework') . "/cache/$name";
-
-        if (file_exists($file)) {
-            return json_decode(file_get_contents($file));
-        }
-    }
-
-    function _putCache($result, $longitude, $latitude, $currentDay, $direction)
-    {
-        $name = "{$longitude}__{$latitude}__{$currentDay}__{$direction}";
-        $name=str_replace([',', '.'], '_', $name);
-
-        $file = storage_path('framework') . "/cache/$name";
-
-        file_put_contents(
-            $file,
-            json_encode($result)
-        );
     }
 }

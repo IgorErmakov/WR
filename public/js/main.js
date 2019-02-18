@@ -1,8 +1,3 @@
-function lg(name) {
-    console.log(name)
-}
-
-
 // Main app
 const app = new Vue({
     el: '#app',
@@ -17,11 +12,13 @@ const app = new Vue({
     },
 
     mounted() {
+
+        // "Leuven" by default, cheers to Belgium :)
         this.loadWeather(
-            "30.983333299999998",
-            "52.4416667",
+            "4.7",
+            "50.883333",
             0,
-            '0'
+            'next'
         )
     },
 
@@ -45,11 +42,9 @@ const app = new Vue({
                 let hidePrevBtn = false;
                 let hideNextBtn = false;
 
-                let maxEntriesCnt = 8;
-
                 if ('0' != day) {
 
-                    if (response.data.items.length < 8) {
+                    if (response.data.items.length < 7) {
 
                         if ('prev' == direction) {
                             hidePrevBtn = true;
@@ -72,11 +67,11 @@ const app = new Vue({
 
             if (this.dataItems.length) {
 
-                let lastDayKey = this.dataItems.length - 1;
+                let dayKey = 'prev' == direction ?
+                    0 :
+                    this.dataItems.length - 1;
 
-                let day = 'prev' == direction ?
-                    this.dataItems[0].dateIso : // prior to "first day"
-                    this.dataItems[lastDayKey].dateIso; // after "last day"
+                let day =  this.dataItems[dayKey].dateIso;
 
                 this.loadWeather(
                     this.lastUsedLongitude,

@@ -50,7 +50,7 @@ class IndexController extends Controller
         $latitude    = (float)$latitude;
         $currentDay  = $currentDay;
 
-        if (!in_array($direction, ['0', 'next', 'prev'])) {
+        if (!in_array($direction, ['next', 'prev'])) {
             throw new Exception('Wrong direction');
         }
 
@@ -67,8 +67,6 @@ class IndexController extends Controller
                 throw new Exception('Wrong date format');
             }
         }
-
-        // @todo validate longitude
 
         $items = (new Weather)->getCityWeather(
             $longitude,

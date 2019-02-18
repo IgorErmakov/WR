@@ -4,7 +4,7 @@ Vue.component('autocomplete', {
     data: function ()
     {
         return {
-            searchQuery: 'Gomel',
+            searchQuery: 'Leuven, BE',
             dataResults: []
         }
     },
@@ -28,8 +28,6 @@ Vue.component('autocomplete', {
             if (this.searchQuery.length > 2) {
 
                 axios.get('/find-city/' + this.searchQuery).then(response => {
-
-                    console.log(response.data.items);
                     this.dataResults = response.data.items;
                 });
             }
@@ -40,7 +38,7 @@ Vue.component('autocomplete', {
             this.searchQuery = result.name + ',' + result.country;
             this.dataResults = []
 
-            app.loadWeather(result.longitude, result.latitude);
+            app.loadWeather(result.longitude, result.latitude, 0, 'next');
         }
     },
 })
