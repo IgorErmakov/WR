@@ -10,7 +10,7 @@ class City extends Model
      * @param string $name
      * @return array
      */
-    static function findByName($name)
+    static function findByName(string $name) : array
     {
         $items = self::select(['accent_city AS name', 'country', 'latitude', 'longitude'])
                  ->where('city', $name)
