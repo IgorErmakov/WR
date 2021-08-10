@@ -9,10 +9,15 @@
 namespace App\Http\Controllers;
 
 
+use App\Transformers\WeatherTransformer;
 use Response;
 use App\City;
 use App\Weather;
 
+use App\Repositories\CityRepository;
+use App\Transformers\CityTransformer;
+
+use App\Services\WeatherService;
 
 class IndexController extends Controller
 {
@@ -27,14 +32,16 @@ class IndexController extends Controller
     }
 
     /**
+     * @param CityRepository $repository
+     * @param CityTransformer $transformer
      * @param string $name
      * @return mixed
      */
-    function findCityByNameAction($name)
+    function findCityByNameAction(CityRepository $repository, CityTransformer $transformer, $name)
     {
-        $items = City::findByName($name);
+        $items = $repository->findByName($name);
 
-        return Response::json(['items' => $items]);
+        return Response::json(['items' => $transformer->transformCollection($items)]);
     }
 
     /**
@@ -44,8 +51,14 @@ class IndexController extends Controller
      * @param string $direction
      * @return mixed
      */
-    function getCityWeatherAction($longitude, $latitude, $currentDay, $direction)
+    function getCityWeatherAction(WeatherService $weather,
+                                  WeatherTransformer $transformer,
+                                  $longitude,
+                                  $latitude,
+                                  $currentDay,
+                                  $direction)
     {
+        // validation
         $longitude   = (float)$longitude;
         $latitude    = (float)$latitude;
         $currentDay  = $currentDay;
@@ -68,13 +81,14 @@ class IndexController extends Controller
             }
         }
 
-        $items = (new Weather)->getCityWeather(
+
+        $items = $weather->getCityWeather(
             $longitude,
             $latitude,
             $currentDate,
             $direction
         );
 
-        return Response::json(['items' => $items]);
+        return Response::json(['items' => $transformer->transformCollection($items)]);
     }
 }

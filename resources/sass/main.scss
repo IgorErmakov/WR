@@ -1,0 +1,89 @@
+
+// Fonts
+@import url('https://fonts.googleapis.com/css?family=Nunito');
+
+// Variables
+@import 'variables';
+
+// Bootstrap
+@import '~bootstrap/scss/bootstrap';
+
+.navbar-laravel {
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+@import url(https://fonts.googleapis.com/css?family=Nunito);
+body {
+  background-color: #222 !important;
+}
+#app-layout a {
+  color: #eee;
+  text-decoration: underline;
+}
+#app-title {
+  font-size: 52px;
+  margin: 20px auto;
+  color: #eee;
+  text-shadow: 0 0 10px #ccc;
+  text-align: center;
+}
+#city-block {
+  width: 580px;
+  margin: 20px auto 50px auto;
+}
+#weather-data #days-list {
+  min-height: 245px;
+  display: flex;
+  margin: 20px auto;
+  justify-content: center;
+}
+.day-weather {
+  margin: 0 10px;
+}
+.day-weather .card-body {
+  max-width: 200px;
+}
+.temp-cart {
+  display: flex;
+  justify-content: space-around;
+}
+.card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  box-shadow: 0 0 10px 1px #ccc;
+}
+.card-body.is-today {
+  box-shadow: 0 0 10px 10px #64d5ca;
+}
+.weather-pagination {
+  text-align: center;
+  color: #eee;
+}
+.weather-pagination a {
+  color: #eee;
+  text-decoration: underline;
+}
+.weather-pagination a:hover {
+  color: #fff;
+}
+.weather-pagination a:visited {
+  color: #fff;
+}
+footer {
+  text-align: center;
+  margin-top: 100px;
+}
+
+footer a {
+  color: #eee;
+  text-decoration: underline;
+}
+footer a:hover {
+  color: #fff;
+}
+
+#city-block .list-group-item {
+  cursor: pointer;
+}

@@ -1,26 +1,32 @@
 <?php
 
-namespace App;
+namespace App\Services;
 
-use Illuminate\Database\Eloquent\Model;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
 
-class Weather extends Model
+use \GuzzleHttp\Psr7\Response;
+
+use DateTime;
+use DateInterval;
+
+use Illuminate\Support\Collection;
+
+class WeatherService
 {
     const API_URI = 'https://api.darksky.net';
 
     /**
      * @param float $longitude
      * @param float $latitude
-     * @param \DateTime $givenDay
+     * @param DateTime $givenDay
      * @param string $direction
-     * @return array
+     * @return Collection
      */
     public function getCityWeather(float $longitude,
                                    float $latitude,
-                                   \DateTime $givenDay = null,
-                                   string $direction   = '') : array
+                                   DateTime $givenDay = null,
+                                   string $direction  = '') : Collection
     {
         $result = [];
 
@@ -33,54 +39,53 @@ class Weather extends Model
             $this->_getDays($givenDay, $direction) :
             [ '' ]; // today
 
-        if (empty($days)) {
-            return [];
+        if (!empty($days)) {
+
+            $promises = [];
+
+            foreach ($days as $day) {
+
+                $uri = sprintf(
+                    'https://api.darksky.net/forecast/%s/%f,%f%s/?units=si&exclude=currently,minutely,hourly',
+                    env('DARKSKY_API_KEY'),
+                    $latitude,
+                    $longitude,
+                    $day ? ",{$day}T00:00:00" : '' // add "," before the day if the day is not empty
+                );
+
+                // special case for 'today'
+                $promises[$day] = $client->getAsync($uri);
+            }
+
+            // Wait on all of the requests to complete. Throws a ConnectException
+            // if any of the requests fail
+            $reqResults = Promise\unwrap($promises);
+
+            foreach ($reqResults as $day => $res) {
+
+                $result = array_merge(
+                    $this->_getDataFromResponse($day, $res),
+                    $result
+                );
+            }
         }
 
-        $promises = [];
-
-        foreach ($days as $day) {
-
-            $uri = sprintf(
-                'https://api.darksky.net/forecast/%s/%f,%f%s/?units=si&exclude=currently,minutely,hourly',
-                env('DARKSKY_API_KEY'),
-                $latitude,
-                $longitude,
-                $day ? ",{$day}T00:00:00" : '' // add "," before the day if the day is not empty
-            );
-
-            // special case for 'today'
-            $promises[$day] = $client->getAsync($uri);
-        }
-
-        // Wait on all of the requests to complete. Throws a ConnectException
-        // if any of the requests fail
-        $reqResults = Promise\unwrap($promises);
-
-        foreach ($reqResults as $day => $res) {
-
-            $result = array_merge(
-                $this->_getDataFromResponse($day, $res),
-                $result
-            );
-        }
-
-        return $result;
+        return collect($result);
     }
 
     /**
-     * @param \DateTime $givenDay
+     * @param DateTime $givenDay
      * @param string $direction
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
-    private function _getDays(\DateTime $givenDay, string $direction) : array
+    private function _getDays(DateTime $givenDay, string $direction) : array
     {
         $result = [];
 
-        $todayDate = new \DateTime();
+        $todayDate = new DateTime();
 
-        $interval = new \DateInterval('P1D');
+        $interval = new DateInterval('P1D');
 
         // get 7 next/prev days
         for ($i = 0; $i < 7; $i++) {
@@ -111,10 +116,10 @@ class Weather extends Model
 
     /**
      * @param string  $givenDay
-     * @param \GuzzleHttp\Psr7\Response $response
+     * @param Response $response
      * @return array
      */
-    private function _getDataFromResponse(string $givenDay, \GuzzleHttp\Psr7\Response $response) : array
+    private function _getDataFromResponse(string $givenDay, Response $response) : array
     {
         // parse JSON
         $resultJson = (string)$response->getBody();
@@ -135,8 +140,6 @@ class Weather extends Model
         // Perform result entry
         $result = [];
 
-        $todayDate = date('Y-m-d');
-
         foreach ($jsonData->daily->data as $idx => $dayData) {
 
             $day = $givenDay;
@@ -148,19 +151,12 @@ class Weather extends Model
                 continue;
             }
 
-            $itm = new \stdClass;
+            $dayData->day = $day;
 
-            $itm->dateIso      = $day;
-            $itm->isToday      = $todayDate == $day;
-            $itm->dayLabel     = date('l, d F Y', strtotime($day));
-            $itm->summary      = $dayData->summary;
-            $itm->weatherImage = $dayData->icon;
-            $itm->dayTemp      = round($dayData->temperatureHigh) . ' ℃';
-            $itm->nightTemp    = round($dayData->temperatureLow) . ' ℃';
-
-            $result[] = $itm;
+            $result[] = (array)$dayData;
         }
 
         return $result;
     }
 }
+

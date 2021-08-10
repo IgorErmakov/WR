@@ -9,18 +9,9 @@ require('./bootstrap');
 
 window.Vue = require('vue');
 
-/**
- * The following block of code may be used to automatically register your
- * Vue components. It will recursively scan this directory for the Vue
- * components and automatically register them with their "basename".
- *
- * Eg. ./components/ExampleComponent.vue -> <example-component></example-component>
- */
-
-// const files = require.context('./', true, /\.vue$/i)
-// files.keys().map(key => Vue.component(key.split('/').pop().split('.')[0], files(key).default))
-
-Vue.component('example-component', require('./components/ExampleComponent.vue').default);
+Vue.component('Autocomplete', require('./components/Autocomplete.vue').default);
+Vue.component('Singleday', require('./components/Singleday.vue').default);
+Vue.component('Pagination', require('./components/Pagination.vue').default);
 
 /**
  * Next, we will create a fresh Vue application instance and attach it to
@@ -28,6 +19,86 @@ Vue.component('example-component', require('./components/ExampleComponent.vue').
  * or customize the JavaScript scaffolding to fit your unique needs.
  */
 
+// Main app
 const app = new Vue({
-    el: '#app'
+
+    el: '#app',
+
+    data() {
+        return {
+            lastUsedLongitude: 0,
+            lastUsedLatitud:   0,
+            isPrevBtnHidden:   false,
+            isNextBtnHidden:   false,
+            dataItems:         []
+        }
+    },
+
+    mounted() {
+
+        // "Leuven" by default, cheers to Belgium :)
+        this.loadWeather(
+            "4.7",
+            "50.883333",
+            0,
+            'next'
+        )
+    },
+
+    methods:  {
+
+        loadWeather(longitude, latitude, day = '0', direction = '0')
+        {
+            this.dataItems = [];
+
+            this.lastUsedLongitude = longitude;
+            this.lastUsedLatitude  = latitude;
+
+            let url = `/get-city-weather/${longitude}/${latitude}/${day}/${direction}`;
+
+            axios.get(url).then(response => {
+
+                let hidePrevBtn = false;
+                let hideNextBtn = false;
+
+                if ('0' != day) {
+
+                    if (response.data.items.length < 7) {
+
+                        if ('prev' == direction) {
+                            hidePrevBtn = true;
+                        } else {
+                            hideNextBtn = true;
+                        }
+                    }
+                }
+
+                this.dataItems = response.data.items;
+
+                this.isPrevBtnHidden = hidePrevBtn;
+                this.isNextBtnHidden = hideNextBtn;
+            });
+        },
+
+        loadDays(e, direction)
+        {
+            e.preventDefault();
+
+            if (this.dataItems.length) {
+
+                let dayKey = 'prev' == direction ?
+                    0 :
+                    this.dataItems.length - 1;
+
+                let day =  this.dataItems[dayKey].dateIso;
+
+                this.loadWeather(
+                    this.lastUsedLongitude,
+                    this.lastUsedLatitude,
+                    day,
+                    direction
+                );
+            }
+        },
+    }
 });
